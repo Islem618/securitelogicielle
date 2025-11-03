@@ -1,0 +1,8 @@
+<Context>
+    <!-- JNDI datasource available to the webapp at java:comp/env/jdbc/ishope -->
+    <Resource name="jdbc/ishope" auth="Container" type="javax.sql.DataSource"
+              driverClassName="org.postgresql.Driver"
+              url="jdbc:postgresql://localhost:5432/ishope"
+              username="postgres" password="postgres"
+              maxTotal="20" maxIdle="10" maxWaitMillis="10000"/>
+</Context>

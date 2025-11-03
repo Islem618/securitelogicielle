@@ -1,11 +1,16 @@
 package ishop.service;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
 
 import org.json.simple.JSONObject;
 
@@ -14,90 +19,101 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
-
-/**
- * Servlet implementation class MobileUser
- */
 @WebServlet("/Logins")
 public class Logins extends HttpServlet {
+	private static final long serialVersionUID = 1L;
 
-    private static final long serialVersionUID = 1L;
+	public Logins() { }
 
-	/**
-     * Default constructor. 
-     */
-    public Logins() {
-        // TODO Auto-generated constructor stub
-    }
-
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		//response.getWriter().append("Served at: ").append(request.getContextPath());
-        doPost(request, response);
+		doPost(request, response);
 	}
 
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		//doGet(request, response);
 		String password = request.getParameter("password");
 		String username = request.getParameter("username");
-	
-		
-		Pattern mailpattern = Pattern.compile("^\\w+[\\.]*\\w+@([\\w-]+\\.)+[\\w-]{2,4}$");
-		Matcher m = mailpattern.matcher(username);
-		boolean isemail = m.matches();
-		
-		
-		if(!isemail){
+
+		// basic null checks
+		if (username == null || password == null) {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+			return;
+		}
+
+		// email validation
+		boolean isEmail = username.matches("^\\w+[\\.]*\\w+@([\\w-]+\\.)+[\\w-]{2,4}$");
+		if (!isEmail) {
 			response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 			return;
 		}
-		
-		String sql = "SELECT id, firstname, lastname, password FROM users WHERE EMAIL='" + username +"'";
-		
-		DataServices dsc = new DataServices ();
-		
-		ArrayList<ArrayList<String>> ans = dsc.doQuery("ishope", sql);
-		
-		if(ans == null){
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-			return;
-		}
-		
-		response.setContentType("text/html;charset=UTF-8");
-		
+
+		// JNDI lookup for DataSource (requires context.xml + resource-ref in web.xml)
+		DataSource ds;
 		try {
-			boolean matched = SecurePassword.validatePassword(password, ans.get(1).get(3));
-				if (matched) {
-					String json = "{\n";
-					
-					json += "\"user\": \"" + JSONObject.escape(username) + "\",\n";
-					json += "\"fullname\": \""+ JSONObject.escape(ans.get(1).get(1) + " " + ans.get(1).get(2))  + "\",\n";
-					json += "\"usertype\": \"client\",\n" ;
-					json += "\"iduser\": "+ ans.get(1).get(0) +",\n";
-					json += "\"token\": \"" + request.getSession(true).getId()+ "\"\n";
-					json += "}";
-						
-					response.getOutputStream().println(json);
-						
-				} else {
-					   response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-
-				   }
-			} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-				// TODO Auto-generated catch block
-				response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-				e.printStackTrace();
+			InitialContext ctx = new InitialContext();
+			ds = (DataSource) ctx.lookup("java:comp/env/jdbc/ishope");
+			if (ds == null) {
+				throw new NamingException("DataSource jdbc/ishope not found");
 			}
-		
+		} catch (NamingException ne) {
+			throw new ServletException("JNDI lookup failed for jdbc/ishope", ne);
+		}
+
+		String sql = "SELECT id, firstname, lastname, password FROM public.users WHERE email = ?";
+
+		try (Connection conn = ds.getConnection();
+			 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+			ps.setString(1, username);
+			try (ResultSet rs = ps.executeQuery()) {
+				if (!rs.next()) {
+					// user not found
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+					return;
+				}
+
+				String storedHash = rs.getString("password"); // get hashed password from DB
+				boolean matched;
+				try {
+					matched = SecurePassword.validatePassword(password, storedHash);
+				} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+					// treat validation errors as auth failure but log server-side
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+					return;
+				}
+
+				if (!matched) {
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+					return;
+				}
+
+				// success: build JSON response
+				String id = String.valueOf(rs.getInt("id"));
+				String firstname = rs.getString("firstname");
+				String lastname = rs.getString("lastname");
+				String fullname = (firstname == null ? "" : firstname) + " " + (lastname == null ? "" : lastname);
+
+				HttpSession session = request.getSession(true);
+				// Optional: set secure flags at container level (Tomcat) or via headers if needed
+
+				response.setContentType("application/json;charset=UTF-8");
+				String json = "{\n";
+				json += "\"user\": \"" + JSONObject.escape(username) + "\",\n";
+				json += "\"fullname\": \"" + JSONObject.escape(fullname.trim()) + "\",\n";
+				json += "\"usertype\": \"client\",\n";
+				json += "\"iduser\": " + id + ",\n";
+				json += "\"token\": \"" + JSONObject.escape(session.getId()) + "\"\n";
+				json += "}";
+
+				response.getWriter().println(json);
+			}
+
+		} catch (Exception e) {
+			// DB or other unexpected error -> 500
+			e.printStackTrace();
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
 	}
-
 }
-
