@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta charset="UTF-8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="login.css">
+<title> iShopping - login </title>
+<style>
+.grid-container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-gap: 20px;
+	text-align: left;
+}
+
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal:before {
+     content: "";
+     display: none;
+     background: rgba(0, 0, 0, 0.6);
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     bottom: 0;
+     z-index: 10;
+}
+ .modal:target:before {
+     display: block;
+}
+ .modal:target .modal-dialog {
+     -webkit-transform: translate(0, 0);
+     -ms-transform: translate(0, 0);
+     transform: translate(0, 0);
+     top: 20%;
+}
+ .modal-dialog {
+     background: #fefefe;
+     border: #333 solid 1px;
+     border-radius: 5px;
+     margin-left: -200px;
+     position: fixed;
+     left: 50%;
+     top: -100%;
+     z-index: 11;
+     width: 360px;
+     -webkit-transform: translate(0, -500%);
+     -ms-transform: translate(0, -500%);
+     transform: translate(0, -500%);
+     -webkit-transition: -webkit-transform 0.3s ease-out;
+     -moz-transition: -moz-transform 0.3s ease-out;
+     -o-transition: -o-transform 0.3s ease-out;
+     transition: transform 0.3s ease-out;
+}
+ .modal-body {
+     padding: 20px;
+}
+ .modal-header, .modal-footer {
+     padding: 10px 20px;
+}
+ .modal-header {
+     border-bottom: #eee solid 1px;
+}
+ .modal-header h2 {
+     font-size: 20px;
+}
+ .modal-footer {
+     border-top: #eee solid 1px;
+     text-align: right;
+}
+</style>
+</head>
+
+<body style="background-color: white;" onload="processGrant();">
+
+	
+  <div id="descriptives" class="login-page">
+		<form action="Logins" method="post" class="login form">
+ 			<div class="imgcontainer">
+    			<img src="profil.png" alt="Avatar" class="avatar" title="Sign up..." onclick="document.getElementById('id01').style.display='block'"> 
+  			</div>
+  			<span id="neg"> </span><br/>
+  			<div class="container" style="text-align:center;margin-bottom:1%;overflow: auto;">
+    			<input type="hidden" name="usertype" value="partner">
+    			<label for="uname"><b>E-mail:</b></label>
+    			<input type="text" placeholder="E-mail address" name="username" id ="uname" pattern="^\w+[\.]*\w+@([\w-]+\.)+[\w-]{2,4}$"  required>
+    			<label for="psw"><b>Password:</b></label>
+    			<input type="password" placeholder="Password" name="password" id="pswlogin" required>
+        
+    			<button type="submit" class="magicbutton button2">Sign in</button><br/>
+      				<!-- <label>
+ 						<input type="checkbox" checked="checked" name="remember"> Se souvenir de ma connexion
+    				</label> <br/> -->
+    				<p> <a href="#" onclick="document.getElementById('pwdforgot').style.display='block';return false;">I forgot my password</a></p> 
+     
+    				<label> You don't have an account:</label><br/>
+    			
+				<button type="button" class="magicbutton buttongreen" onclick="document.getElementById('id01').style.display='block'">Sign up</button>
+    			<br/>
+  			</div>
+		</form>
+	
+</div>
+
+
+
+<div id="id01"  class="modal" style="display:none">
+  <span onclick="document.getElementById('id01').style.display='none'" class="close" title="Close Modal">&times;</span>
+  <form class="modal-content login form"  action="AddUser" method="post" id="createProfile" onsubmit="return checkForm(this);" style="width:100%">
+    <div class="container" style="width: 100%;">
+      <h2>Sign up in few minutes...</h2>
+      <p>Please fill the following form to creat your account.</p>
+          <h4 style="width:100%;text-align:center;">(&#42;: mandatory informations )</h4>
+      
+      <hr>
+       <label for="prenom"><b>Firstname</b><span style="color:red">&#42;</span></label>
+   	   <input type="text" placeholder="your firstname" name="firstname" required>
+
+
+       	<label for="name"><b>Lastname</b><span style="color:red">&#42;</span></label>
+		<input type="text" placeholder="your lastname" name="lastname" required>
+		
+
+      <label for="email"><b>E-mail</b><span style="color:red">&#42;</span></label>
+      <input type="text" placeholder="your e-mail" name="email"  pattern="^\w+[\.]*\w+@([\w-]+\.)+[\w-]{2,4}$" onblur="submitCheckUsername(this)" required>
+		<span id='emailwarning' style="color:red"></span>
+		
+	<label for="birth"><b>Date of Birth </b><span style="color:red">&#42;</span></label>
+<input type="date" placeholder="01/01/2000" name="birth"  onblur="" required >
+<span id='fphone1warning' style="color:red"></span>
+
+
+<label for="password"><b>Password (at least 8 alphabetical symbols)</b><span style="color:red">&#42;</span></label>
+<input type="password" placeholder="password (at least 8 alphabetical symbols)" name="pass" id="psw" onchange="checkSizePassword(this)" required>
+<span id='sizepsw'></span> <br/>
+<label for="psw-repeat"><b>Confirm Password</b><span style="color:red">&#42;</span></label>
+      <input type="password" placeholder="Confirm your password" name="passrepeat" id="pswrep" required  onchange="checkRepeatPassword(document.getElementById('psw'),this)">
+      <span id='wrongpsw'></span>
+      
+      		<hr>
+      	<div style="text-align:left">	
+      <input type="checkbox" id="cgu" name="cgu" value="1" class="cguconf" onchange="toggleActivateSubmit();" style="width:10%">
+  		<label for="cgu"> I accept the <a href="#" style="color:dodgerblue">Terms of use</a> 
+  		</label><br>
+  		<input type="checkbox" id="conf" name="conf" value="1" class="cguconf" onchange="toggleActivateSubmit();" style="width:10%">
+  		<label for="conf"> I accept the <a href="#" style="color:dodgerblue">Confidentiality policy</a>
+  		</label><br>
+  		</div>
+  		<hr>
+      <div class="grid-container" style="text-align:center">
+        <div><button type="submit"   class="magicbutton buttongreen" style="width:100%" id="bsubmit" disabled>Save</button></div>
+		<div><button type="button"  onclick="document.getElementById('id01').style.display='none'" style="width:100%" class="magicbutton buttonred">Cancel</button></div>
+      </div>
+    </div>
+  </form>
+
+</div>
+ 
+
+<div id="pwdforgot" class="modal" style="display:none" >
+  <span onclick="document.getElementById('pwdforgot').style.display='none'" class="close" title="Close Modal">&times;</span>
+  <form style="width:60%;" action="ForgottenPassword" class="modal-content login form" method="post" id="profilepwd" onsubmit="">
+    <div class="container" style="width: 100%;">
+      <h2>You forgot your password!? You can get access back to your account.</h2>
+      <p>Please provide the email address you use as a username:</p>
+      <hr>
+      
+
+      <label for="email"><b>E-mail</b></label>
+      <input type="text" placeholder="e-mail address" name="email" pattern="^\w+[\.]*\w+@([\w-]+\.)+[\w-]{2,4}$"  required>
+		<span id='emailwarning' style="color:red"></span>
+     
+      <hr>
+      
+       <div class="grid-container" style="text-align:center">
+        <div><button type="submit"   class="magicbutton buttongreen" style="width:100%" id="pwdsubmit" >Send</button></div>
+		<div><button type="button"  onclick="document.getElementById('pwdforgot').style.display='none'" style="width:100%" class="magicbutton buttonred">Cancel</button></div>
+      </div>
+    </div>
+  </form>
+
+</div>
+<!-- 
+<script>
+// Get the modal
+var modal = document.getElementById('id01');
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+</script>
+ -->
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script type="text/javascript">
+function processGrant() {
+	return true;
+}
+
+//Get the modal
+var modal = document.getElementById("myModal");
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks on the button, open the modal 
+btn.onclick = function() {
+  modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+function checkSizePassword (pass) {
+	  if (pass.value.length < 8)
+	  {
+	    surligne(pass, true);
+	    var siz = document.getElementById('sizepsw');
+	      siz.textContent = 'Mot de passe doit avoir au moins 8 symboles alphanumériques.';
+	      siz.style.color = 'red';
+	      return false;
+	  } else {
+	     surligne(pass, false);
+	     var siz = document.getElementById('sizepsw');
+	      siz.textContent = '';
+	      siz.style.color = 'red';
+	      return true;
+	    }
+	}
+
+	function checkRepeatPassword (pass, repeat) {
+	    if (pass.value != repeat.value) {
+	      surligne(pass, true);
+	      surligne(repeat, true);
+	      var wrg = document.getElementById('wrongpsw');
+	      wrg.textContent = 'Mot de passe re-saisi ne correspond pas au mot de passe initial.';
+	      wrg.style.color = 'red';
+	      return false;
+	    } else {
+	     surligne(pass, false);
+	     surligne(repeat, false);
+	      var wrg = document.getElementById('wrongpsw');
+	      wrg.textContent = '';
+	      wrg.style.color = 'red';
+	      return true;
+	    }
+	}
+
+
+
+	function checkForm(f)
+	{
+	   var sizePassOk = checkSizePassword(f.psw);
+	   var repeatOk = checkRepeatPassword (f.psw, f.pswrep);
+	   
+	   if(sizePassOk && repeatOk) {
+		   document.getElementById('id01').style.display='none'; 
+		   return true; 
+	   }
+		  
+	   else
+	   {
+	      alert("Veuillez remplir correctement tous les champs");
+	      return false;
+	   }
+	}
+
+
+	function clearFields() {
+	  document.getElementById("uname").value ="";
+	  document.getElementById("psw").value ="";
+	}
+
+	function toggleActivateSubmit() {
+		var boxes = document.getElementsByClassName("cguconf");
+		for (i = 0; i < boxes.length; ++i)
+			if (!boxes[i].checked) {
+				document.getElementById("bsubmit").disabled = true;
+				return;
+			}
+		document.getElementById("bsubmit").disabled = false;
+	}
+
+	function surligne(champ, erreur)
+	{
+	   if(erreur)
+	      champ.style.backgroundColor = "#fba";
+	   else
+	      champ.style.backgroundColor = "";
+	}
+
+ </script>
+ 
+</body>
+</html>
+
+
+
